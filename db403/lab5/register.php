@@ -1,21 +1,46 @@
 <?php
-$conn = new mysqli('db403-mysql', 'root', 'P@ssw0rd', 'northwind');
-if ($conn->connect_errno) {
-    die($conn->connect_error);
-}
+session_start();
+include 'db_connect.php';
 // echo isset($_POST['submit']) ? $_POST['email'] : '';
 $domain_error = false; 
 if (isset($_POST['submit'])) {
     $domain = substr($_POST['email'], -10);
     $domain_error = strtolower($domain) != '@dpu.ac.th';
     if (!$domain_error) {
-        $sql = "insert into registrator";
-        $sql .= "(fname,lname,gender,dob,email,password)";
-        $sql .= "values('{$_POST['fname']}', '{$_POST['lname']}', '{$_POST['gender']}', '{$_POST['dob']}', '{$_POST['email']}', "; 
-        $sql .= "'".password_hash($_POST['pass'], PASSWORD_DEFAULT) ."')"; 
-        echo $sql;
+        //$sql = "insert into registration";
+        //$sql .= "(fname,lname,gender,dob,email,passw)";
+        //$sql .= "values('{$_POST['fname']}', '{$_POST['lname']}', '{$_POST['gender']}', '{$_POST['dob']}', '{$_POST['email']}', "; 
+        //$sql .= "'".password_hash($_POST['pass'], PASSWORD_DEFAULT) ."')"; 
+        //echo $sql;
+        $sql ='insert into registration(fname,lname,gender,dob,email,passw) values(?,?,?,?,?,?)';
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param('ssssss',
+            $_POST['fname'],
+            $_POST['lname'],
+            $_POST['gender'],
+            $_POST['dob'],
+            $_POST['email'],
+            $password
+        );
+        $password = password_hash(
+            $_POST['pass'], 
+            PASSWORD_DEFAULT
+    );
+        try {
+            //$conn->query($sql);
+            $stmt ->execute();
+            //echo 'Successful registration';
+            //unset($_POST['submit']);
+            $_SESSION['email'] = $_POST['email'];
+            header('location: welcome.php');
+            exit();
+          } catch (Exception $e) {
+            echo "Error: $sql<br>{$e->getMessage()}";
+          }
+          $stmt->close();
     }
 }
+$conn->close();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -30,7 +55,7 @@ if (isset($_POST['submit'])) {
             let repass = document.querySelector('#repass');
             let correct = pass.value == repass.value;
             if (!correct){
-                alert('พาสเวิร์ดไม่ถูกต้อง.');
+                alert('ใส่พาสเวิร์ดไม่ถูกต้อง.');
             }
             return correct;
         }
@@ -60,7 +85,7 @@ if (isset($_POST['submit'])) {
                 <label for="female">Female</label>
                 <input type="radio" name="gender" id="others" checked value="O">
                 <label for="others">Others</label>
-                
+
             </fieldset>
         </p>
         <p>
